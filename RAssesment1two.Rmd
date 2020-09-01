@@ -1,0 +1,175 @@
+---
+title: "R-Assesment 1"
+output: 
+  html_document:
+    theme: cerulean
+    highlight: tango
+    toc: true
+    toc_float: true
+    df_print: kable
+    code_folding: hide
+---
+```{r}
+# load the data
+Ex1 <- read.csv("C:/Users/Thomas S/Documents/Ubiqum/2. Data Analytics 2/2. Data Analytics 2/1. Getting Started with R/RAssesment1/exercise-1.csv")
+```
+
+```{r}
+# Median calculation and replacement of NA by median for numeric attributes
+Ex1$Sepal.Length[is.na(Ex1$Sepal.Length)]<- median(Ex1$Sepal.Length, na.rm = TRUE)
+
+Ex1$Sepal.Width[is.na(Ex1$Sepal.Width)]<- median(Ex1$Sepal.Width, na.rm = TRUE)
+
+Ex1$Petal.Length[is.na(Ex1$Petal.Length)]<- median(Ex1$Petal.Length, na.rm = TRUE)
+
+Ex1$Petal.Width[is.na(Ex1$Petal.Width)]<- median(Ex1$Petal.Width, na.rm = TRUE)
+```
+
+```{r}
+# exclude the rows in which Species/ Plants has no values (shown as NA)
+# na.exclude(Ex1$Species)
+# na.exclude(Ex1$Plants)
+Ex1 <- na.omit(Ex1)#$Species
+#na.omit(Ex1$Plants)
+```
+
+```{r}
+#create boxplots without outliers
+boxplot(Sepal.Length~Species,data=Ex1,outline=FALSE)
+
+boxplot(Sepal.Width~Species, data=Ex1, outline=FALSE)
+
+boxplot(Petal.Length~Species, data=Ex1, outline=FALSE)
+
+boxplot(Petal.Width~Species, data=Ex1, outline=FALSE)
+```
+
+```{r}
+#removing outliers Petal Length
+outliers <-boxplot(Ex1$Petal.Length, plot=FALSE)$out
+#print(outliers)
+Ex1 <-Ex1[-which(Ex1$Petal.Length %in% outliers),]
+#boxplot(Ex1$Petal.Length)
+````
+
+```{r}
+#removing outliers Petal Width
+outliers <-boxplot(Ex1$Petal.Width, plot=FALSE)$out
+#print(outliers)
+Ex1 <-Ex1[-which(Ex1$Petal.Width %in% outliers),]
+#boxplot(Ex1$Petal.Width)
+```
+
+
+```{r}
+# rename Species to Palnts
+names(Ex1)<-c("Sepal.Length","Sepal.Width","Petal.Length","Petal.Width","Plants")
+```
+
+```{r}
+#create attribute Petal.Area by multiplying Petal.Length with Petal.Width
+Ex1$Petal.Area <- Ex1$Petal.Length * Ex1$Petal.Width
+````
+
+```{r}
+#create 1st Version of correlation matrix
+Ex2 <- Ex1[,c(1,2,3,4,6)]
+corex2 <- round(cor(Ex2),2)
+```
+
+```{r}
+#Reordering the correlation matrix by correlation
+reorder_corex2 <- function(corex2){
+dd <- as.dist((1-corex2)/2)
+hc <- hclust(dd)
+corex2 <-corex2[hc$order, hc$order]
+}
+```
+
+```{r}
+#melt data
+library(reshape2)
+melted_corex2 <- melt(corex2)
+```
+
+```{r}
+#get V1 of heat map of correlation matrix 
+library(ggplot2)
+ggplot(data=melted_corex2, aes(x=Var1, y=Var2, fill=value)) + geom_tile()
+```
+
+```{r}
+# creates function to select data to be replaced by NA (as it is a duplicate)
+get_lower_tri <-function(corex2) {
+  corex2[upper.tri(corex2)] <- NA
+  return(corex2)
+}
+```
+
+```{r}
+# same as before but for upper triangle
+get_upper_tri <- function(corex2){
+  corex2[lower.tri(corex2)] <-NA
+  return(corex2)
+}
+```
+
+```{r}
+#??
+upper_tri <- get_upper_tri(corex2)
+```
+
+```{r}
+library(reshape2)
+melted_corex2 <- melt(upper_tri, na.rm=TRUE)
+```
+
+```{r}
+#changes colour sceme from Blue (-1) to White (0) to Red (1)
+ggheatmap <- ggplot(melted_corex2, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson Correlation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()
+```
+
+```{r}
+#adds the correlation values to the heatmap
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+```{r}
+#Plot Petal.Width by Petal.Length
+ggplot(Ex1, aes(x=Petal.Width, y=Petal.Area)) +
+  geom_point(aes(color=Plants))+
+  geom_smooth(method="lm")+
+  coord_cartesian()+
+  #scale_color_gradient()
+  theme_bw() +
+  labs(title = "Petal Length by Petal Width",
+       x = "Petal Width",
+       y = "Petal Length")
+````
+
+```{r}
+#Plot histogram of Petal.Width
+ggplot(Ex1, aes(x=Petal.Width,))+
+  geom_histogram(binwidth = .1,aes(fill=Plants))
+
